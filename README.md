@@ -3,7 +3,7 @@
 **n** is a simple calculator app for iOS made as a coding exercise. Now you might find it useful.
 
 ### In action
-<img src="https://twixes.com/n/screen.png" height="333.5">
+<img src="https://twixes.com/n/screen.png" height="667">
 
 ### Known issues
 * the order of operations is not applied
