@@ -41,7 +41,6 @@ class ViewController: UIViewController {
   @IBOutlet weak var displayBackground: UIView?
   @IBOutlet weak var display: UILabel?
   @IBOutlet weak var clearButton: UIButton?
-  @IBOutlet weak var squareRootButton: UIButton?
   @IBOutlet weak var zeroDigitButton: UIButton?
   @IBOutlet var operationButtons: [UIButton]?
   
@@ -57,7 +56,7 @@ class ViewController: UIViewController {
     stripe.endPoint = CGPoint(x: 1, y: 0)
     view.layer.addSublayer(stripe)
     // title inset correction for the "0" button
-    zeroDigitButton!.titleEdgeInsets = UIEdgeInsetsMake(0.0, 0.0, 0.0, CGFloat(squareRootButton!.frame.size.width))
+    zeroDigitButton!.titleEdgeInsets = UIEdgeInsetsMake(0.0, 0.0, 0.0, CGFloat(clearButton!.frame.size.width))
   }
   
   // functions
@@ -86,12 +85,10 @@ class ViewController: UIViewController {
     }
     if on {
       partialMode = true
-      squareRootButton!.isEnabled = false
       operationMode = sender!.accessibilityLabel!
       sender!.setTitleColor(brandViolet, for: .normal)
     } else {
       partialMode = false
-      squareRootButton!.isEnabled = true
     }
   }
   
@@ -150,9 +147,13 @@ class ViewController: UIViewController {
   }
   
   @IBAction func squareRoot() {
-    if !partialMode && currentNumber < 0 {
+    if partialMode && partialNumber < 0 {
       throwCalculationError()
-    } else if !partialMode {
+    } else if partialMode {
+      partialNumber = sqrt(partialNumber)
+    } else if currentNumber < 0 {
+      throwCalculationError()
+    } else {
       currentNumber = sqrt(currentNumber)
     }
     updateDisplay()
