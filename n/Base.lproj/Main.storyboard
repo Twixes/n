@@ -251,6 +251,9 @@
                                 <state key="disabled">
                                     <color key="titleColor" white="0.66666666666666663" alpha="1" colorSpace="calibratedWhite"/>
                                 </state>
+                                <connections>
+                                    <action selector="squareRoot" destination="BYZ-38-t0r" eventType="touchUpInside" id="qNL-h1-Chr"/>
+                                </connections>
                             </button>
                             <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="clip" translatesAutoresizingMaskIntoConstraints="NO" id="xLQ-To-IdE">
                                 <rect key="frame" x="281" y="201" width="92" height="92"/>
@@ -315,7 +318,6 @@
                         <outlet property="clearButton" destination="W8w-Fm-QJ7" id="YYx-Qn-Jgi"/>
                         <outlet property="display" destination="X1K-kr-S8q" id="3x3-Mp-y55"/>
                         <outlet property="displayBackground" destination="DCn-Wz-ox6" id="5tI-g5-mc2"/>
-                        <outlet property="squareRootButton" destination="zuY-Jx-Zna" id="JWO-w4-6dZ"/>
                         <outlet property="zeroDigitButton" destination="ejI-Ig-vNN" id="cCr-2w-NNc"/>
                         <outletCollection property="operationButtons" destination="xLQ-To-IdE" collectionClass="NSMutableArray" id="6As-fW-heJ"/>
                         <outletCollection property="operationButtons" destination="Iao-jF-DZz" collectionClass="NSMutableArray" id="POY-2g-V66"/>

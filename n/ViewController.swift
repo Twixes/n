@@ -29,11 +29,11 @@ class ViewController: UIViewController {
   let brandGradient = [UIColor.init(0x8000FF).cgColor, UIColor.init(0xBF00FF).cgColor]
   let black = UIColor.init(0x000000)
   var calculationErrorThrown = false
-  var userProvidedPartialNumber = false
-  var userProvidedCurrentNumber = false
-  var currentNumber = 0.0
-  var partialNumber = 0.0 // addend, subtrahend, multiplier, divisor
-  var partialMode = false
+  var userProvidedPrimaryNumber = false
+  var userProvidedSecondaryNumber = false
+  var primaryNumber = 0.0
+  var secondaryNumber = 0.0 // addend, subtrahend, multiplier, divisor
+  var secondaryMode = false
   var operationMode = "" // add, subtract, multiply, divide
   var decimalPointMode = false
   var decimalPointPlace = 0
@@ -67,50 +67,48 @@ class ViewController: UIViewController {
       if decimalPointMode && decimalPointPlace == 0 {
         suffix = "."
       }
-      if partialMode {
-        display!.text = String(format: "%g", partialNumber) + suffix
+      if secondaryMode {
+        display!.text = String(format: "%g", secondaryNumber) + suffix
       } else {
-        display!.text = String(format: "%g", currentNumber) + suffix
+        display!.text = String(format: "%g", primaryNumber) + suffix
       }
     }
   }
   
   func partialSwitch(_ on: Bool, sender: UIButton?) {
-    partialNumber = 0.0
-    userProvidedPartialNumber = false
+    secondaryNumber = 0.0
+    userProvidedSecondaryNumber = false
     decimalPointMode = false
     decimalPointPlace = 0
     for button in operationButtons! {
       button.setTitleColor(black, for: .normal)
     }
     if on {
-      partialMode = true
+      secondaryMode = true
       operationMode = sender!.accessibilityLabel!
       sender!.setTitleColor(brandViolet, for: .normal)
     } else {
-      partialMode = false
+      secondaryMode = false
     }
   }
   
   func performOperation() {
     switch operationMode {
     case "add":
-      currentNumber += partialNumber
+      primaryNumber += secondaryNumber
     case "subtract":
-      currentNumber -= partialNumber
+      primaryNumber -= secondaryNumber
     case "multiply":
-      currentNumber *= partialNumber
+      primaryNumber *= secondaryNumber
     case "divide":
-      if partialNumber == 0.0 {
+      if secondaryNumber == 0.0 {
         throwCalculationError()
       } else {
-        currentNumber /= partialNumber
+        primaryNumber /= secondaryNumber
       }
     default:
       break
     }
-    operationMode = ""
-    partialSwitch(false, sender: nil)
   }
   
   func throwCalculationError() {
@@ -124,43 +122,46 @@ class ViewController: UIViewController {
     calculationErrorThrown = false
     decimalPointMode = false
     decimalPointPlace = 0
-    if partialMode && partialNumber != 0.0 {
-      userProvidedPartialNumber = false
-      partialNumber = 0.0
-    } else if partialMode {
+    if secondaryMode && userProvidedSecondaryNumber {
       partialSwitch(false, sender: nil)
-      partialNumber = 0.0
+      secondaryNumber = 0.0
+      operationMode = ""
+    } else if secondaryMode {
+      partialSwitch(false, sender: nil)
+      userProvidedSecondaryNumber = false
+      secondaryNumber = 0.0
     } else {
-      currentNumber = 0.0
+      primaryNumber = 0.0
+      operationMode = ""
       clearButton!.setTitle("AC", for: .normal)
     }
     updateDisplay()
   }
   
   @IBAction func changeSign() {
-    if partialMode && partialNumber != 0.0 {
-      partialNumber *= -1
-    } else if !partialMode && currentNumber != 0.0 {
-      currentNumber *= -1
+    if secondaryMode && secondaryNumber != 0.0 {
+      secondaryNumber *= -1
+    } else if !secondaryMode && primaryNumber != 0.0 {
+      primaryNumber *= -1
     }
     updateDisplay()
   }
   
   @IBAction func squareRoot() {
-    if partialMode && partialNumber < 0 {
+    if secondaryMode && secondaryNumber < 0 {
       throwCalculationError()
-    } else if partialMode {
-      partialNumber = sqrt(partialNumber)
-    } else if currentNumber < 0 {
+    } else if secondaryMode {
+      secondaryNumber = sqrt(secondaryNumber)
+    } else if primaryNumber < 0 {
       throwCalculationError()
     } else {
-      currentNumber = sqrt(currentNumber)
+      primaryNumber = sqrt(primaryNumber)
     }
     updateDisplay()
   }
   
   @IBAction func changeOperationMode(_ sender: UIButton) {
-    if !calculationErrorThrown && userProvidedPartialNumber {
+    if !calculationErrorThrown && userProvidedSecondaryNumber {
       performOperation()
       updateDisplay()
       partialSwitch(true, sender: sender)
@@ -171,17 +172,19 @@ class ViewController: UIViewController {
 
   @IBAction func equalSignTouch(_ sender: UIButton) {
     performOperation()
-    partialSwitch(false, sender: nil)
-    userProvidedCurrentNumber = false
+    decimalPointMode = false
+    decimalPointPlace = 0
+    secondaryMode = false
+    userProvidedPrimaryNumber = false
     updateDisplay()
   }
   
   @IBAction func addDecimalPoint(_ sender: UIButton) {
     decimalPointMode = true
-    if partialMode {
-      userProvidedPartialNumber = true
+    if secondaryMode {
+      userProvidedSecondaryNumber = true
     } else {
-      userProvidedCurrentNumber = true
+      userProvidedPrimaryNumber = true
     }
     clearButton!.setTitle("C", for: .normal)
     updateDisplay()
@@ -189,29 +192,29 @@ class ViewController: UIViewController {
   
   @IBAction func digitTouch(_ sender: UIButton) {
     let digit = Double(sender.currentTitle!)!
-    if partialMode {
-      if !userProvidedPartialNumber {
-        partialNumber = 0.0
-        userProvidedPartialNumber = true
+    if secondaryMode {
+      if !userProvidedSecondaryNumber {
+        secondaryNumber = 0.0
+        userProvidedSecondaryNumber = true
       }
     } else {
-      if !userProvidedCurrentNumber {
-        currentNumber = 0.0
-        userProvidedCurrentNumber = true
+      if !userProvidedPrimaryNumber {
+        primaryNumber = 0.0
+        userProvidedPrimaryNumber = true
       }
     }
     if decimalPointMode {
       decimalPointPlace += 1
-      if partialMode {
-        partialNumber = partialNumber + digit * pow(10.0, -Double(decimalPointPlace))
+      if secondaryMode {
+        secondaryNumber = secondaryNumber + digit * pow(10.0, -Double(decimalPointPlace))
       } else {
-        currentNumber = currentNumber + digit * pow(10.0, -Double(decimalPointPlace))
+        primaryNumber = primaryNumber + digit * pow(10.0, -Double(decimalPointPlace))
       }
     } else {
-      if partialMode {
-        partialNumber = partialNumber * 10.0 + digit
+      if secondaryMode {
+        secondaryNumber = secondaryNumber * 10.0 + digit
       } else {
-        currentNumber = currentNumber * 10.0 + digit
+        primaryNumber = primaryNumber * 10.0 + digit
       }
     }
     if digit != 0.0 {
