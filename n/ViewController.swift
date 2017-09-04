@@ -175,6 +175,9 @@ class ViewController: UIViewController {
     decimalPointMode = false
     decimalPointPlace = 0
     secondaryMode = false
+    for button in operationButtons! {
+      button.setTitleColor(black, for: .normal)
+    }
     userProvidedPrimaryNumber = false
     updateDisplay()
   }
