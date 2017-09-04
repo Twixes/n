@@ -8,4 +8,4 @@
 * the order of operations is not applied
 
 ### License
-https://opensource.org/licenses/MIT
+https://github.com/Twixes/n/blob/master/LICENSE
