@@ -1,4 +1,5 @@
 language: swift
 xcode_project: n.xcodeproj
 xcode_scheme: n
+script: xcodebuild -project n.xcodeproj -scheme n -sdk iphonesimulator ONLY_ACTIVE_ARCH=NO
 osx_image: xcode9
