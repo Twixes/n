@@ -1,0 +1,4 @@
+language: swift
+xcode_project: n.xcodeproj
+xcode_scheme: n
+osx_image: xcode9
