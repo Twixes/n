@@ -64,8 +64,10 @@ class ViewController: UIViewController {
   func updateDisplay() {
     if !calculationErrorThrown {
       var suffix = ""
-      if decimalPointMode && decimalPointPlace == 0 {
-        suffix = "."
+      if decimalPointMode && secondaryMode && secondaryNumber == 0.0 {
+        suffix = "." + String(repeating: "0", count: decimalPointPlace)
+      } else if decimalPointMode && !secondaryMode && primaryNumber == 0.0 {
+        suffix = "." + String(repeating: "0", count: decimalPointPlace)
       }
       if secondaryMode {
         display!.text = String(format: "%g", secondaryNumber) + suffix
@@ -75,7 +77,7 @@ class ViewController: UIViewController {
     }
   }
   
-  func partialSwitch(_ on: Bool, sender: UIButton?) {
+  func secondarySwitch(_ on: Bool, sender: UIButton?) {
     secondaryNumber = 0.0
     userProvidedSecondaryNumber = false
     decimalPointMode = false
@@ -99,7 +101,11 @@ class ViewController: UIViewController {
     case "subtract":
       primaryNumber -= secondaryNumber
     case "multiply":
-      primaryNumber *= secondaryNumber
+      if secondaryNumber == 0.0 {
+        primaryNumber *= primaryNumber
+      } else {
+        primaryNumber *= secondaryNumber
+      }
     case "divide":
       if secondaryNumber == 0.0 {
         throwCalculationError()
@@ -123,13 +129,11 @@ class ViewController: UIViewController {
     decimalPointMode = false
     decimalPointPlace = 0
     if secondaryMode && userProvidedSecondaryNumber {
-      partialSwitch(false, sender: nil)
       secondaryNumber = 0.0
-      operationMode = ""
-    } else if secondaryMode {
-      partialSwitch(false, sender: nil)
       userProvidedSecondaryNumber = false
-      secondaryNumber = 0.0
+    } else if secondaryMode {
+      secondarySwitch(false, sender: nil)
+      operationMode = ""
     } else {
       primaryNumber = 0.0
       operationMode = ""
@@ -150,34 +154,41 @@ class ViewController: UIViewController {
   @IBAction func squareRoot() {
     if secondaryMode && secondaryNumber < 0 {
       throwCalculationError()
-    } else if secondaryMode {
+      updateDisplay()
+    } else if secondaryMode && secondaryNumber > 0 {
       secondaryNumber = sqrt(secondaryNumber)
-    } else if primaryNumber < 0 {
+      updateDisplay()
+    } else if !secondaryMode && primaryNumber < 0 {
       throwCalculationError()
-    } else {
+      updateDisplay()
+    } else if !secondaryMode && primaryNumber > 0 {
       primaryNumber = sqrt(primaryNumber)
+      updateDisplay()
     }
-    updateDisplay()
   }
   
   @IBAction func changeOperationMode(_ sender: UIButton) {
     if !calculationErrorThrown && userProvidedSecondaryNumber {
       performOperation()
       updateDisplay()
-      partialSwitch(true, sender: sender)
+      secondarySwitch(true, sender: sender)
     } else if !calculationErrorThrown {
-      partialSwitch(true, sender: sender)
+      secondarySwitch(true, sender: sender)
     }
   }
 
   @IBAction func equalSignTouch(_ sender: UIButton) {
     performOperation()
+    if operationMode == "multiply" && !userProvidedSecondaryNumber {
+    } else {
+      operationMode = ""
+      for button in operationButtons! {
+        button.setTitleColor(black, for: .normal)
+      }
+    }
     decimalPointMode = false
     decimalPointPlace = 0
     secondaryMode = false
-    for button in operationButtons! {
-      button.setTitleColor(black, for: .normal)
-    }
     userProvidedPrimaryNumber = false
     updateDisplay()
   }

@@ -5,7 +5,7 @@
 <img src="https://twixes.com/n/screen.png" height="667">
 
 ### Known issues
-* the order of operations is not applied because I'm a lazy fuck
+* the correct order of operations is not implemented (yet)
 
 ### License
 [MIT License](https://github.com/Twixes/n/blob/master/LICENSE)
