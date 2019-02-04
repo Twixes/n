@@ -25,23 +25,33 @@ extension UIColor {
 
 class ViewController: UIViewController {
   
-  let brandViolet = UIColor.init(0xA000FF)
-  let brandGradient = [UIColor.init(0x8000FF).cgColor, UIColor.init(0xBF00FF).cgColor]
-  let black = UIColor.init(0x000000)
-  var calculationErrorThrown = false
-  var userProvidedPrimaryNumber = false
-  var userProvidedSecondaryNumber = false
-  var primaryNumber = 0.0
-  var secondaryNumber = 0.0 // addend, subtrahend, multiplier, divisor
-  var secondaryMode = false
-  var operationMode = "" // add, subtract, multiply, divide
-  var decimalPointMode = false
-  var decimalPointPlace = 0
+  let brandViolet = UIColor(0xA000FF)
+  let brandGradient = [UIColor(0x8000FF).cgColor, UIColor(0xBF00FF).cgColor]
+  let black = UIColor(0x000000)
+
+  var wasCalculationErrorThrown = false
+  var isNumberUserProvided = false // is number at current working level user-provided
+  var inputModeOn = true
+
+  var currentWorkingLevel = 0
+  var operationModes: [String?] = [nil, nil, nil]
+  // at 0 is padding
+  // at 1 is add, subtract, multiply or divide - standard lane
+  // at 2 is multiply or divide - priority lane
+  var workingNumbers = [0.0, 0.0, 0.0]
+  // at 0 is final result
+  // at 1 is addend, subtrahend, multiplier or divisor - standard lane
+  // at 2 is multiplier or divisor - priority lane
+  var lastInputOperationMode: String? = nil
+  var lastInputNumber = 0.0
+
+  var decimalPointInputPlace: Int? = nil
+  var decimalPointInputZero: Bool? = nil
   
-  @IBOutlet weak var displayBackground: UIView?
-  @IBOutlet weak var display: UILabel?
-  @IBOutlet weak var clearButton: UIButton?
-  @IBOutlet weak var zeroDigitButton: UIButton?
+  @IBOutlet var displayBackground: UIView?
+  @IBOutlet var display: UILabel?
+  @IBOutlet var clearButton: UIButton?
+  @IBOutlet var zeroDigitButton: UIButton?
   @IBOutlet var operationButtons: [UIButton]?
   
   // ran on load
@@ -60,180 +70,255 @@ class ViewController: UIViewController {
   }
   
   // functions
-  
-  func updateDisplay() {
-    if !calculationErrorThrown {
-      var suffix = ""
-      if decimalPointMode && secondaryMode && secondaryNumber == 0.0 {
-        suffix = "." + String(repeating: "0", count: decimalPointPlace)
-      } else if decimalPointMode && !secondaryMode && primaryNumber == 0.0 {
-        suffix = "." + String(repeating: "0", count: decimalPointPlace)
-      }
-      if secondaryMode {
-        display!.text = String(format: "%g", secondaryNumber) + suffix
-      } else {
-        display!.text = String(format: "%g", primaryNumber) + suffix
-      }
-    }
+
+  func printDiagnostics() {
+    print("# DIAGNOSTICS")
+    print("wasCalculationErrorThrown = \(wasCalculationErrorThrown)")
+    print("isNumberUserProvided = \(isNumberUserProvided)")
+    print("inputModeOn = \(inputModeOn)")
+    print("lastInputOperationMode = \(lastInputOperationMode as Optional)")
+    print("lastInputNumber = \(lastInputNumber)")
+    print("currentWorkingLevel = \(currentWorkingLevel)")
+    print("operationModes = \(operationModes)")
+    print("workingNumbers = \(workingNumbers)")
+    print("decimalPointInputPlace = \(decimalPointInputPlace as Optional)")
+    print("decimalPointInputZero = \(decimalPointInputZero as Optional)")
   }
-  
-  func secondarySwitch(_ on: Bool, sender: UIButton?) {
-    secondaryNumber = 0.0
-    userProvidedSecondaryNumber = false
-    decimalPointMode = false
-    decimalPointPlace = 0
+
+  func updateDisplay(showLevelBelow: Bool = false) {
+    var suffix = ""
+    if decimalPointInputZero != nil && decimalPointInputZero! {
+      suffix = "." + String(repeating: "0", count: decimalPointInputPlace!)
+    }
+    let levelToDisplay = !isNumberUserProvided && currentWorkingLevel > 0 ? currentWorkingLevel - 1 : currentWorkingLevel
+    display!.text = String(format: "%g", workingNumbers[levelToDisplay]) + suffix
+    printDiagnostics()
+  }
+
+  func updateOperationButtons() {
+    // reset color of all operation buttons
     for button in operationButtons! {
       button.setTitleColor(black, for: .normal)
     }
-    if on {
-      secondaryMode = true
-      operationMode = sender!.accessibilityLabel!
-      sender!.setTitleColor(brandViolet, for: .normal)
-    } else {
-      secondaryMode = false
+    // set color of currently applicable operation button
+    if let currentOperationMode = operationModes[currentWorkingLevel] {
+      for button in operationButtons! {
+        if button.accessibilityLabel! == currentOperationMode {
+          button.setTitleColor(brandViolet, for: .normal)
+          break
+        }
+      }
     }
   }
-  
-  func performOperation() {
-    switch operationMode {
-    case "add":
-      primaryNumber += secondaryNumber
-    case "subtract":
-      primaryNumber -= secondaryNumber
-    case "multiply":
-      if secondaryNumber == 0.0 {
-        primaryNumber *= primaryNumber
-      } else {
-        primaryNumber *= secondaryNumber
-      }
-    case "divide":
-      if secondaryNumber == 0.0 {
-        throwCalculationError()
-      } else {
-        primaryNumber /= secondaryNumber
-      }
-    default:
-      break
-    }
+
+  func resetInput() {
+    isNumberUserProvided = false
+    decimalPointInputPlace = nil
+    decimalPointInputZero = nil
   }
   
+  func performOperation(withLastInput: Bool = false) {
+    if withLastInput {
+      if let lastInputOperationModeUnwrapped = lastInputOperationMode {
+        switch lastInputOperationModeUnwrapped {
+        case "add":
+          workingNumbers[currentWorkingLevel] += lastInputNumber
+        case "subtract":
+          workingNumbers[currentWorkingLevel] -= lastInputNumber
+        case "multiply":
+          workingNumbers[currentWorkingLevel] *= lastInputNumber
+        case "divide":
+          if lastInputNumber == 0.0 {
+            throwCalculationError()
+          } else {
+            workingNumbers[currentWorkingLevel] /= lastInputNumber
+          }
+        default:
+          break
+        }
+      }
+    } else if let currentOperationMode = operationModes[currentWorkingLevel] {
+      switch currentOperationMode {
+      case "add":
+        workingNumbers[currentWorkingLevel-1] += workingNumbers[currentWorkingLevel]
+      case "subtract":
+        workingNumbers[currentWorkingLevel-1] -= workingNumbers[currentWorkingLevel]
+      case "multiply":
+        workingNumbers[currentWorkingLevel-1] *= workingNumbers[currentWorkingLevel]
+      case "divide":
+        if workingNumbers[currentWorkingLevel] == 0.0 {
+          throwCalculationError()
+        } else {
+          workingNumbers[currentWorkingLevel-1] /= workingNumbers[currentWorkingLevel]
+        }
+      default:
+        break
+      }
+      workingNumbers[currentWorkingLevel] = 0.0
+    }
+
+    inputModeOn = false
+
+  }
+
+  func levelDown() {
+    operationModes[currentWorkingLevel] = nil
+    workingNumbers[currentWorkingLevel] = 0.0
+    if currentWorkingLevel > 0 {
+      currentWorkingLevel -= 1
+    }
+  }
+
+  func levelsReset() {
+    wasCalculationErrorThrown = false
+    inputModeOn = true
+    currentWorkingLevel = 0
+    operationModes = [nil, nil, nil]
+    workingNumbers = [0.0, 0.0, 0.0]
+    lastInputOperationMode = nil
+    lastInputNumber = 0.0
+  }
+
   func throwCalculationError() {
-    calculationErrorThrown = true
+    wasCalculationErrorThrown = true
     display!.text = "error"
+    levelsReset()
   }
-  
+
   // actions
   
   @IBAction func clearNumber(_ sender: UIButton) {
-    calculationErrorThrown = false
-    decimalPointMode = false
-    decimalPointPlace = 0
-    if secondaryMode && userProvidedSecondaryNumber {
-      secondaryNumber = 0.0
-      userProvidedSecondaryNumber = false
-    } else if secondaryMode {
-      secondarySwitch(false, sender: nil)
-      operationMode = ""
+    if isNumberUserProvided {
+      workingNumbers[currentWorkingLevel] = 0.0
     } else {
-      primaryNumber = 0.0
-      operationMode = ""
+      levelDown()
+    }
+    if currentWorkingLevel == 0 && workingNumbers == [0.0, 0.0, 0.0] {
       clearButton!.setTitle("AC", for: .normal)
     }
+    resetInput()
+    updateOperationButtons()
     updateDisplay()
   }
   
   @IBAction func changeSign() {
-    if secondaryMode && secondaryNumber != 0.0 {
-      secondaryNumber *= -1
-    } else if !secondaryMode && primaryNumber != 0.0 {
-      primaryNumber *= -1
+    guard !wasCalculationErrorThrown else { return }
+    workingNumbers[currentWorkingLevel] *= -1
+    if inputModeOn {
+      lastInputNumber *= -1
     }
+    isNumberUserProvided = true
+    clearButton!.setTitle("C", for: .normal)
     updateDisplay()
   }
   
   @IBAction func squareRoot() {
-    if secondaryMode && secondaryNumber < 0 {
+    guard !wasCalculationErrorThrown else { return }
+    guard workingNumbers[currentWorkingLevel] >= 0 else {
       throwCalculationError()
-      updateDisplay()
-    } else if secondaryMode && secondaryNumber > 0 {
-      secondaryNumber = sqrt(secondaryNumber)
-      updateDisplay()
-    } else if !secondaryMode && primaryNumber < 0 {
-      throwCalculationError()
-      updateDisplay()
-    } else if !secondaryMode && primaryNumber > 0 {
-      primaryNumber = sqrt(primaryNumber)
-      updateDisplay()
+      return
     }
+    workingNumbers[currentWorkingLevel] = sqrt(workingNumbers[currentWorkingLevel])
+    updateDisplay()
   }
   
   @IBAction func changeOperationMode(_ sender: UIButton) {
-    if !calculationErrorThrown && userProvidedSecondaryNumber {
+    guard !wasCalculationErrorThrown else { return }
+
+    var showLevelBelow = false
+
+    if currentWorkingLevel == 2 {
       performOperation()
-      updateDisplay()
-      secondarySwitch(true, sender: sender)
-    } else if !calculationErrorThrown {
-      secondarySwitch(true, sender: sender)
+      if sender.accessibilityLabel! == "add" || sender.accessibilityLabel! == "subtract" {
+        levelDown()
+        performOperation()
+        showLevelBelow = true
+      }
+      showLevelBelow = true
+    } else if currentWorkingLevel == 1 {
+      if (operationModes[1]! == "add" || operationModes[1]! == "subtract") && (sender.accessibilityLabel! == "multiply" || sender.accessibilityLabel! == "divide") {
+        currentWorkingLevel = 2
+      } else {
+        performOperation()
+        showLevelBelow = true
+      }
+    } else {
+      currentWorkingLevel = 1
     }
+
+    inputModeOn = true
+    resetInput()
+    updateDisplay(showLevelBelow: showLevelBelow)
+    operationModes[currentWorkingLevel] = sender.accessibilityLabel!
+    lastInputOperationMode = sender.accessibilityLabel!
+    updateOperationButtons()
   }
 
   @IBAction func equalSignTouch(_ sender: UIButton) {
-    performOperation()
-    if operationMode == "multiply" && !userProvidedSecondaryNumber {
-    } else {
-      operationMode = ""
-      for button in operationButtons! {
-        button.setTitleColor(black, for: .normal)
+    guard !wasCalculationErrorThrown else { return }
+    if currentWorkingLevel == 2 {
+      if isNumberUserProvided {
+        performOperation()
+        levelDown()
+      } else {
+        levelDown()
+        performOperation(withLastInput: true)
       }
+      performOperation()
+      levelDown()
+    } else if currentWorkingLevel == 1 {
+      if isNumberUserProvided {
+        performOperation()
+        levelDown()
+      } else {
+        levelDown()
+        performOperation(withLastInput: true)
+      }
+    } else {
+      performOperation(withLastInput: true)
     }
-    decimalPointMode = false
-    decimalPointPlace = 0
-    secondaryMode = false
-    userProvidedPrimaryNumber = false
+    resetInput()
+    updateOperationButtons()
     updateDisplay()
   }
   
   @IBAction func addDecimalPoint(_ sender: UIButton) {
-    decimalPointMode = true
-    if secondaryMode {
-      userProvidedSecondaryNumber = true
-    } else {
-      userProvidedPrimaryNumber = true
-    }
+    guard !wasCalculationErrorThrown && decimalPointInputPlace == nil else { return }
+    if !inputModeOn { levelsReset() }
+    decimalPointInputPlace = 0
+    decimalPointInputZero = true
+    isNumberUserProvided = true
     clearButton!.setTitle("C", for: .normal)
     updateDisplay()
   }
   
   @IBAction func digitTouch(_ sender: UIButton) {
+    guard !wasCalculationErrorThrown else { return }
+    if !inputModeOn { levelsReset() }
+
     let digit = Double(sender.currentTitle!)!
-    if secondaryMode {
-      if !userProvidedSecondaryNumber {
-        secondaryNumber = 0.0
-        userProvidedSecondaryNumber = true
-      }
-    } else {
-      if !userProvidedPrimaryNumber {
-        primaryNumber = 0.0
-        userProvidedPrimaryNumber = true
-      }
-    }
-    if decimalPointMode {
-      decimalPointPlace += 1
-      if secondaryMode {
-        secondaryNumber = secondaryNumber + digit * pow(10.0, -Double(decimalPointPlace))
-      } else {
-        primaryNumber = primaryNumber + digit * pow(10.0, -Double(decimalPointPlace))
-      }
-    } else {
-      if secondaryMode {
-        secondaryNumber = secondaryNumber * 10.0 + digit
-      } else {
-        primaryNumber = primaryNumber * 10.0 + digit
-      }
-    }
     if digit != 0.0 {
+      isNumberUserProvided = true
       clearButton!.setTitle("C", for: .normal)
     }
+
+    var signMultiplier = 1.0
+    if workingNumbers[currentWorkingLevel].sign == .minus {
+      signMultiplier = -1.0
+    }
+
+    if decimalPointInputPlace != nil {
+      decimalPointInputPlace! += 1
+      workingNumbers[currentWorkingLevel] = workingNumbers[currentWorkingLevel] + signMultiplier * digit * pow(10.0, -Double(decimalPointInputPlace!))
+      if digit != 0.0 {
+        decimalPointInputZero = false
+      }
+    } else {
+      workingNumbers[currentWorkingLevel] = workingNumbers[currentWorkingLevel] * 10.0 + signMultiplier * digit
+    }
+
+    lastInputNumber = workingNumbers[currentWorkingLevel]
+
     updateDisplay()
   }
   
