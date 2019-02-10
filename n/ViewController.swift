@@ -33,15 +33,18 @@ class ViewController: UIViewController {
   var isNumberUserProvided = false // is number at current working level user-provided
   var inputModeOn = true
 
-  var currentWorkingLevel = 0
   var operationModes: [String?] = [nil, nil, nil]
-  // at 0 is padding
-  // at 1 is add, subtract, multiply or divide - standard lane
-  // at 2 is multiply or divide - priority lane
+  // at 0 is padding (always nil)
+  // at 1 is "add", "subtract", "multiply" or "divide" - default lane
+  // at 2 is "multiply" or "divide" - priority lane
   var workingNumbers = [0.0, 0.0, 0.0]
   // at 0 is final result
-  // at 1 is addend, subtrahend, multiplier or divisor - standard lane
+  // at 1 is addend, subtrahend, multiplier or divisor - default lane
   // at 2 is multiplier or divisor - priority lane
+  var currentWorkingLevel = 0
+  // 0 when there's no explicit operation mode - inferred lastInputOperationMode and lastInputNumber
+  // 1 when merging workingNumbers[0] and workingNumbers[1] with operationModes[1] - default lane
+  // 2 when merging workingNumbers[1] and workingNumbers[2] with operationModes[2] - priority lane
   var lastInputOperationMode: String? = nil
   var lastInputNumber = 0.0
 
