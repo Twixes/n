@@ -69,7 +69,7 @@ class ViewController: UIViewController {
     stripe.endPoint = CGPoint(x: 1, y: 0)
     view.layer.addSublayer(stripe)
     // title inset correction for the "0" button
-    zeroDigitButton!.titleEdgeInsets = UIEdgeInsetsMake(0.0, 0.0, 0.0, CGFloat(clearButton!.frame.size.width))
+    zeroDigitButton!.titleEdgeInsets = UIEdgeInsets.init(top: 0.0, left: 0.0, bottom: 0.0, right: CGFloat(clearButton!.frame.size.width))
   }
   
   // functions
