@@ -95,7 +95,6 @@ class ViewController: UIViewController {
     }
     let levelToDisplay = !isNumberUserProvided && currentWorkingLevel > 0 ? currentWorkingLevel - 1 : currentWorkingLevel
     display!.text = String(format: "%g", workingNumbers[levelToDisplay]) + suffix
-    printDiagnostics()
   }
 
   func updateOperationButtons() {
