@@ -4,7 +4,7 @@
 Correctly handles the order of operations.
 
 ### Preview
-<img src="https://github.com/Twixes/n/raw/master/screen.png" height="667">
+<img src="https://github.com/Twixes/n/raw/master/screen.png" width=375 height=667>
 
 ### License
 [MIT License](https://github.com/Twixes/n/blob/master/LICENSE)
